@@ -13,14 +13,19 @@ function escapeRegex(value) {
 }
 
 function setupWebSocket(server) {
-  const wss = new WebSocketServer({ server, path: '/ws' });
+  const wss = new WebSocketServer({ noServer: true });
+  const allowedPaths = new Set(['/ws', '/']);
 
-  wss.on('connection', (ws, req) => {
+  function handleConnection(ws, req) {
     clientCounter += 1;
     const clientId = clientCounter;
     const ipAddress = req.socket.remoteAddress;
 
-    wsLog('Client connected', { clientId, ipAddress });
+    wsLog('Client connected', {
+      clientId,
+      ipAddress,
+      path: req.url,
+    });
 
     ws.on('message', async (rawMessage) => {
       try {
@@ -82,9 +87,29 @@ function setupWebSocket(server) {
         reason: reason.toString(),
       });
     });
+  }
+
+  wss.on('connection', handleConnection);
+
+  server.on('upgrade', (req, socket, head) => {
+    const host = req.headers.host || 'localhost';
+    const url = new URL(req.url, `http://${host}`);
+    const path = url.pathname;
+
+    if (!allowedPaths.has(path)) {
+      wsLog('Rejected websocket upgrade due to path mismatch', { path });
+      socket.write('HTTP/1.1 404 Not Found\\r\\n\\r\\n');
+      socket.destroy();
+      return;
+    }
+
+    wsLog('Accepted websocket upgrade', { path, host });
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit('connection', ws, req);
+    });
   });
 
-  console.log('WebSocket server listening on /ws');
+  console.log('WebSocket server listening on /ws and /');
 }
 
 module.exports = { setupWebSocket };
