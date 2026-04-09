@@ -161,7 +161,7 @@ function App() {
           </div>
         ) : null}
 
-        <PostList posts={visiblePosts} loading={loading} />
+        <PostList posts={visiblePosts} loading={loading} query={query} />
 
         {!loading && posts.length > POSTS_PER_PAGE ? (
           <div

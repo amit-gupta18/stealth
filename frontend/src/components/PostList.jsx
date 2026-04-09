@@ -1,4 +1,30 @@
-function PostList({ posts, loading }) {
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function highlightText(text, query) {
+  const trimmedQuery = query.trim()
+
+  if (!trimmedQuery) {
+    return text
+  }
+
+  const parts = text.split(new RegExp(`(${escapeRegExp(trimmedQuery)})`, 'ig'))
+
+  return parts.map((part, index) => {
+    if (index % 2 === 1) {
+      return (
+        <mark key={`${part}-${index}`} className="rounded bg-amber-200 px-1 text-slate-950">
+          {part}
+        </mark>
+      )
+    }
+
+    return part
+  })
+}
+
+function PostList({ posts, loading, query }) {
   if (loading) {
     return (
       <div className="mt-6 grid gap-4" aria-busy="true" aria-live="polite">
@@ -21,8 +47,10 @@ function PostList({ posts, loading }) {
     <ul className="mt-6 grid gap-4">
       {posts.map((post) => (
         <li key={post.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-          <h3 className="text-lg font-semibold tracking-tight text-slate-950">{post.title}</h3>
-          <p className="mt-2 leading-7 text-slate-600">{post.body}</p>
+          <h3 className="text-lg font-semibold tracking-tight text-slate-950">
+            {highlightText(post.title, query)}
+          </h3>
+          <p className="mt-2 leading-7 text-slate-600">{highlightText(post.body, query)}</p>
         </li>
       ))}
     </ul>
