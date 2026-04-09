@@ -5,6 +5,17 @@ import { fetchAndStorePosts, getPosts } from './services/api'
 import { createSearchSocket } from './services/socket'
 import './App.css'
 
+const ENABLE_WS_DEBUG = import.meta.env.VITE_WS_DEBUG === 'true' || import.meta.env.DEV
+
+function wsDebug(message, meta = {}) {
+  if (!ENABLE_WS_DEBUG) {
+    return
+  }
+
+  const timestamp = new Date().toISOString()
+  console.log(`[WS][App][${timestamp}] ${message}`, meta)
+}
+
 function App() {
   const [query, setQuery] = useState('')
   const [posts, setPosts] = useState([])
@@ -46,8 +57,30 @@ function App() {
     })
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.close()
+      const socket = socketRef.current
+
+      if (!socket) {
+        return
+      }
+
+      wsDebug('Running socket cleanup', { readyState: socket.readyState })
+
+      if (socket.readyState === WebSocket.OPEN) {
+        wsDebug('Closing open socket during cleanup')
+        socket.close(1000, 'Component unmounted')
+        return
+      }
+
+      if (socket.readyState === WebSocket.CONNECTING) {
+        wsDebug('Socket is connecting, scheduling close after open')
+        socket.addEventListener(
+          'open',
+          () => {
+            wsDebug('Closing socket after delayed open during cleanup')
+            socket.close(1000, 'Component unmounted')
+          },
+          { once: true }
+        )
       }
     }
   }, [])
@@ -57,6 +90,10 @@ function App() {
       return
     }
 
+    wsDebug('Sending query to websocket', {
+      query,
+      queryLength: query.length,
+    })
     socketRef.current.send(query)
   }, [query, connected])
 
