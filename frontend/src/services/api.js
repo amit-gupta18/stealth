@@ -20,4 +20,18 @@ export async function fetchAndStorePosts() {
   return response.json();
 }
 
+export async function getPostById(id) {
+  const response = await fetch(`${API_BASE_URL}/posts/${id}`);
+
+  if (!response.ok) {
+    if (response.status === 404) {
+      throw new Error('Post not found');
+    }
+
+    throw new Error('Failed to fetch post by id');
+  }
+
+  return response.json();
+}
+
 export { API_BASE_URL };
