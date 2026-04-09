@@ -1,10 +1,25 @@
-* {
-	box-sizing: border-box;
-}
+@import "tailwindcss";
 
-body {
-	margin: 0;
-	font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-	color: #111827;
-	background: linear-gradient(120deg, #f8fafc, #eff6ff);
+@layer base {
+	* {
+		box-sizing: border-box;
+	}
+
+	html {
+		scroll-behavior: smooth;
+	}
+
+	body {
+		margin: 0;
+		min-width: 320px;
+		color: #0f172a;
+		background: #f8fafc;
+	}
+
+	button,
+	input,
+	textarea,
+	select {
+		font: inherit;
+	}
 }
