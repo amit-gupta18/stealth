@@ -16,6 +16,10 @@ app.get('/health', (_req, res) => {
   res.status(200).json({ status: 'ok' });
 });
 
+app.get('/' , (req , res) => {
+  res.status(200).send('API is running');    
+});
+
 app.use('/api', postRoutes);
 
 const PORT = process.env.PORT || 5000;
