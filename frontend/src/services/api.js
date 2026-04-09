@@ -1,8 +1,11 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
-if (!API_BASE_URL) {
+if (!configuredApiBaseUrl) {
   throw new Error('VITE_API_BASE_URL is required. Add it to your frontend environment variables.');
 }
+
+const normalizedBase = configuredApiBaseUrl.replace(/\/+$/, '');
+const API_BASE_URL = normalizedBase.endsWith('/api') ? normalizedBase : `${normalizedBase}/api`;
 
 export async function getPosts() {
   const response = await fetch(`${API_BASE_URL}/posts`);

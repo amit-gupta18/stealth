@@ -16,7 +16,10 @@ function buildWebSocketUrl() {
     return import.meta.env.VITE_WS_URL;
   }
 
-  return API_BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://').replace('/api', '/ws');
+  return API_BASE_URL
+    .replace('http://', 'ws://')
+    .replace('https://', 'wss://')
+    .replace(/\/api$/, '/ws');
 }
 
 export function createSearchSocket({ onResults, onError, onOpen, onClose }) {
