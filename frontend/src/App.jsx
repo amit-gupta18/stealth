@@ -21,9 +21,69 @@ function App() {
   const [posts, setPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [connected, setConnected] = useState(false)
+  const [connectionStatus, setConnectionStatus] = useState('connecting')
   const [currentPage, setCurrentPage] = useState(1)
   const socketRef = useRef(null)
+  const reconnectTimeoutRef = useRef(null)
+  const shouldReconnectRef = useRef(true)
+
+  function clearReconnectTimer() {
+    if (reconnectTimeoutRef.current) {
+      window.clearTimeout(reconnectTimeoutRef.current)
+      reconnectTimeoutRef.current = null
+    }
+  }
+
+  function connectSocket() {
+    clearReconnectTimer()
+
+    const socket = createSearchSocket({
+      onOpen: () => {
+        if (socketRef.current !== socket) {
+          return
+        }
+
+        setConnectionStatus('connected')
+      },
+      onClose: () => {
+        if (socketRef.current !== socket) {
+          return
+        }
+
+        setConnectionStatus('reconnecting')
+
+        if (!shouldReconnectRef.current) {
+          return
+        }
+
+        reconnectTimeoutRef.current = window.setTimeout(() => {
+          if (shouldReconnectRef.current) {
+            connectSocket()
+          }
+        }, 1000)
+      },
+      onError: (socketError) => {
+        if (socketRef.current !== socket) {
+          return
+        }
+
+        setConnectionStatus('reconnecting')
+        setError(socketError.message)
+      },
+      onResults: (results) => {
+        if (socketRef.current !== socket) {
+          return
+        }
+
+        setPosts(results)
+        setCurrentPage(1)
+      },
+    })
+
+    socketRef.current = socket
+    setConnectionStatus(socket.readyState === WebSocket.OPEN ? 'connected' : 'connecting')
+    return socket
+  }
 
   useEffect(() => {
     async function loadPosts() {
@@ -46,20 +106,28 @@ function App() {
   }, [])
 
   useEffect(() => {
-    socketRef.current = createSearchSocket({
-      onOpen: () => setConnected(true),
-      onClose: () => setConnected(false),
-      onError: (socketError) => {
-        setConnected(false)
-        setError(socketError.message)
-      },
-      onResults: (results) => {
-        setPosts(results)
-        setCurrentPage(1)
-      },
-    })
+    shouldReconnectRef.current = true
+    connectSocket()
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState !== 'visible') {
+        return
+      }
+
+      const socket = socketRef.current
+
+      if (!socket || socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+        connectSocket()
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
+      shouldReconnectRef.current = false
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      clearReconnectTimer()
+
       const socket = socketRef.current
 
       if (!socket) {
@@ -106,7 +174,7 @@ function App() {
     }, 300)
 
     return () => window.clearTimeout(timer)
-  }, [query, connected])
+  }, [query, connectionStatus])
 
   const totalPages = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE))
   const safeCurrentPage = Math.min(currentPage, totalPages)
@@ -122,7 +190,7 @@ function App() {
   }, [currentPage, totalPages])
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(219,234,254,0.9),_transparent_55%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(219,234,254,0.9),transparent_55%),linear-gradient(180deg,#f8fafc_0%,#eef2ff_100%)] px-4 py-6 text-slate-900 sm:px-6 lg:px-8">
       <section className="mx-auto w-full max-w-5xl rounded-3xl border border-slate-200/80 bg-white/90 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur sm:p-8">
         <div className="mb-6 flex flex-col gap-3 border-b border-slate-200 pb-5 sm:mb-8 sm:flex-row sm:items-end sm:justify-between">
           <div className="space-y-2">
@@ -136,16 +204,22 @@ function App() {
 
           <span
             className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${
-              connected
+              connectionStatus === 'connected'
                 ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                : 'bg-rose-50 text-rose-700 ring-rose-200'
+                  : connectionStatus === 'reconnecting'
+                    ? 'bg-amber-50 text-amber-700 ring-amber-200'
+                    : 'bg-rose-50 text-rose-700 ring-rose-200'
             }`}
           >
-            {connected ? 'WebSocket connected' : 'WebSocket disconnected'}
+              {connectionStatus === 'connected'
+                ? 'WebSocket connected'
+                : connectionStatus === 'reconnecting'
+                  ? 'WebSocket reconnecting'
+                  : 'WebSocket disconnected'}
           </span>
         </div>
 
-        <SearchBar value={query} onChange={setQuery} connected={connected} />
+          <SearchBar value={query} onChange={setQuery} connected={connectionStatus === 'connected'} />
 
         {error ? (
           <p className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
