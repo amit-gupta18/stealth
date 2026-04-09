@@ -24,7 +24,7 @@ function highlightText(text, query) {
   })
 }
 
-function PostList({ posts, loading, query }) {
+function PostList({ posts, loading, query, onSavePost, savingPostIds = new Set(), savedPostIds = new Set() }) {
   if (loading) {
     return (
       <div className="mt-6 grid gap-4" aria-busy="true" aria-live="polite">
@@ -51,6 +51,23 @@ function PostList({ posts, loading, query }) {
             {highlightText(post.title, query)}
           </h3>
           <p className="mt-2 leading-7 text-slate-600">{highlightText(post.body, query)}</p>
+
+          {onSavePost ? (
+            <div className="mt-4">
+              <button
+                type="button"
+                onClick={() => onSavePost(post)}
+                disabled={savingPostIds.has(post.id) || savedPostIds.has(post.id)}
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-55"
+              >
+                {savedPostIds.has(post.id)
+                  ? 'Saved'
+                  : savingPostIds.has(post.id)
+                    ? 'Saving...'
+                    : 'Save Post'}
+              </button>
+            </div>
+          ) : null}
         </li>
       ))}
     </ul>

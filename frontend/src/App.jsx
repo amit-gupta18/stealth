@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import SearchBar from './components/SearchBar'
 import PostList from './components/PostList'
-import { fetchAndStorePosts, getPostById, getPosts } from './services/api'
+import { getExternalPosts, getPostById, getPosts, savePost } from './services/api'
 import { createSearchSocket } from './services/socket'
 
 const ENABLE_WS_DEBUG = import.meta.env.VITE_WS_DEBUG === 'true' || import.meta.env.DEV
@@ -19,13 +19,14 @@ function wsDebug(message, meta = {}) {
 function App() {
   const [query, setQuery] = useState('')
   const [posts, setPosts] = useState([])
+  const [externalPosts, setExternalPosts] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [connectionStatus, setConnectionStatus] = useState('connecting')
   const [currentPage, setCurrentPage] = useState(1)
-  const [syncInfo, setSyncInfo] = useState(null)
   const [singlePostId, setSinglePostId] = useState('')
   const [singlePost, setSinglePost] = useState(null)
+  const [savingPostIds, setSavingPostIds] = useState(new Set())
   const socketRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
   const shouldReconnectRef = useRef(true)
@@ -94,10 +95,9 @@ function App() {
         setLoading(true)
         setError('')
 
-        const syncResult = await fetchAndStorePosts()
-        setSyncInfo(syncResult)
-        const allPosts = await getPosts()
+        const [allPosts, sourcePosts] = await Promise.all([getPosts(), getExternalPosts()])
         setPosts(allPosts)
+        setExternalPosts(sourcePosts)
         setCurrentPage(1)
       } catch (loadError) {
         setError(loadError.message)
@@ -123,19 +123,33 @@ function App() {
     }
   }
 
-  async function syncSavedPosts() {
+  async function refreshSourcePosts() {
     try {
       setLoading(true)
       setError('')
-      const syncResult = await fetchAndStorePosts()
-      setSyncInfo(syncResult)
-      const allPosts = await getPosts()
-      setPosts(allPosts)
-      setCurrentPage(1)
+      const sourcePosts = await getExternalPosts()
+      setExternalPosts(sourcePosts)
     } catch (loadError) {
       setError(loadError.message)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function saveSinglePost(post) {
+    try {
+      setError('')
+      setSavingPostIds((previous) => new Set(previous).add(post.id))
+      await savePost(post)
+      await refreshSavedPosts()
+    } catch (saveError) {
+      setError(saveError.message)
+    } finally {
+      setSavingPostIds((previous) => {
+        const next = new Set(previous)
+        next.delete(post.id)
+        return next
+      })
     }
   }
 
@@ -235,6 +249,7 @@ function App() {
   const visiblePosts = posts.slice(startIndex, startIndex + POSTS_PER_PAGE)
   const showingStart = posts.length ? startIndex + 1 : 0
   const showingEnd = Math.min(startIndex + POSTS_PER_PAGE, posts.length)
+  const savedPostIds = new Set(posts.map((post) => post.id))
 
   useEffect(() => {
     if (currentPage > totalPages) {
@@ -279,18 +294,11 @@ function App() {
               <div>
                 <h2 className="text-lg font-semibold text-slate-900">Saved Posts (REST APIs)</h2>
                 <p className="text-sm text-slate-600">
-                  Endpoints used: fetch & save, get all posts, get single post.
+                  Endpoints used: get all posts and get single post.
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
-                  onClick={syncSavedPosts}
-                >
-                  Fetch & Save Posts
-                </button>
                 <button
                   type="button"
                   className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
@@ -300,13 +308,6 @@ function App() {
                 </button>
               </div>
             </div>
-
-            {syncInfo ? (
-              <p className="mt-3 text-sm text-slate-600">
-                Last sync: fetched {syncInfo.totalFetched}, inserted {syncInfo.insertedCount}, skipped
-                duplicates {syncInfo.skippedDuplicates}.
-              </p>
-            ) : null}
 
             <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-center">
               <input
@@ -333,6 +334,34 @@ function App() {
                 <p className="mt-2 text-sm leading-6 text-slate-600">{singlePost.body}</p>
               </article>
             ) : null}
+          </section>
+
+          <section className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Available Posts (Save One by One)</h2>
+                <p className="text-sm text-slate-600">
+                  Click Save Post on any item to store that specific post only.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                onClick={refreshSourcePosts}
+              >
+                Refresh Source Posts
+              </button>
+            </div>
+
+            <PostList
+              posts={externalPosts}
+              loading={loading && !externalPosts.length}
+              query=""
+              onSavePost={saveSinglePost}
+              savingPostIds={savingPostIds}
+              savedPostIds={savedPostIds}
+            />
           </section>
 
         {error ? (

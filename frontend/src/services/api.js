@@ -27,6 +27,32 @@ export async function fetchAndStorePosts() {
   return response.json();
 }
 
+export async function getExternalPosts() {
+  const response = await fetch(`${API_BASE_URL}/external-posts`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch external posts');
+  }
+
+  return response.json();
+}
+
+export async function savePost(post) {
+  const response = await fetch(`${API_BASE_URL}/posts/save`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(post),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to save post');
+  }
+
+  return response.json();
+}
+
 export async function getPostById(id) {
   const response = await fetch(`${API_BASE_URL}/posts/${id}`);
 
