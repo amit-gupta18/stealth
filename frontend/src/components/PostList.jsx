@@ -47,18 +47,17 @@ function PostList({ posts, loading, query, onSavePost, savingPostIds = new Set()
     <ul className="mt-6 grid gap-4">
       {posts.map((post) => (
         <li key={post.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-          <h3 className="text-lg font-semibold tracking-tight text-slate-950">
-            {highlightText(post.title, query)}
-          </h3>
-          <p className="mt-2 leading-7 text-slate-600">{highlightText(post.body, query)}</p>
+          <div className="flex items-start justify-between gap-3">
+            <h3 className="text-lg font-semibold tracking-tight text-slate-950">
+              {highlightText(post.title, query)}
+            </h3>
 
-          {onSavePost ? (
-            <div className="mt-4">
+            {onSavePost ? (
               <button
                 type="button"
                 onClick={() => onSavePost(post)}
                 disabled={savingPostIds.has(post.id) || savedPostIds.has(post.id)}
-                className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-55"
+                className="shrink-0 rounded-full border border-slate-900 bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-black disabled:cursor-not-allowed disabled:border-slate-500 disabled:bg-slate-500"
               >
                 {savedPostIds.has(post.id)
                   ? 'Saved'
@@ -66,8 +65,10 @@ function PostList({ posts, loading, query, onSavePost, savingPostIds = new Set()
                     ? 'Saving...'
                     : 'Save Post'}
               </button>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
+
+          <p className="mt-2 leading-7 text-slate-600">{highlightText(post.body, query)}</p>
         </li>
       ))}
     </ul>

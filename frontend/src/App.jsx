@@ -270,34 +270,36 @@ function App() {
             </p>
           </div>
 
-          <span
-            className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${
-              connectionStatus === 'connected'
-                ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+          <div className="flex flex-wrap items-center gap-2">
+            <a
+              href="#available-posts"
+              className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+            >
+              Save Post
+            </a>
+            <span
+              className={`inline-flex w-fit items-center rounded-full px-3 py-1 text-xs font-medium ring-1 ring-inset ${
+                connectionStatus === 'connected'
+                  ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                    : connectionStatus === 'reconnecting'
+                      ? 'bg-amber-50 text-amber-700 ring-amber-200'
+                      : 'bg-rose-50 text-rose-700 ring-rose-200'
+              }`}
+            >
+                {connectionStatus === 'connected'
+                  ? 'WebSocket connected'
                   : connectionStatus === 'reconnecting'
-                    ? 'bg-amber-50 text-amber-700 ring-amber-200'
-                    : 'bg-rose-50 text-rose-700 ring-rose-200'
-            }`}
-          >
-              {connectionStatus === 'connected'
-                ? 'WebSocket connected'
-                : connectionStatus === 'reconnecting'
-                  ? 'WebSocket reconnecting'
-                  : 'WebSocket disconnected'}
-          </span>
+                    ? 'WebSocket reconnecting'
+                    : 'WebSocket disconnected'}
+            </span>
+          </div>
         </div>
 
           <SearchBar value={query} onChange={setQuery} connected={connectionStatus === 'connected'} />
 
           <section className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">Saved Posts (REST APIs)</h2>
-                <p className="text-sm text-slate-600">
-                  Endpoints used: get all posts and get single post.
-                </p>
-              </div>
-
+              <p className="text-sm text-slate-600">Use REST APIs to get all saved posts and fetch one by ID.</p>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -336,12 +338,12 @@ function App() {
             ) : null}
           </section>
 
-          <section className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
+          <section id="available-posts" className="mt-6 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 sm:p-5">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Available Posts (Save One by One)</h2>
+                <h2 className="text-lg font-semibold text-slate-900">Available Posts </h2>
                 <p className="text-sm text-slate-600">
-                  Click Save Post on any item to store that specific post only.
+                  Click Save Post on any item to save the post .
                 </p>
               </div>
 
