@@ -1,0 +1,23 @@
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+
+export async function getPosts() {
+  const response = await fetch(`${API_BASE_URL}/posts`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch posts');
+  }
+
+  return response.json();
+}
+
+export async function fetchAndStorePosts() {
+  const response = await fetch(`${API_BASE_URL}/fetch`);
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch and store posts');
+  }
+
+  return response.json();
+}
+
+export { API_BASE_URL };
